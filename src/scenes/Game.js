@@ -1,10 +1,11 @@
 import Phaser from "../lib/phaser.js";
 let gameState = {
-    windowWidth: 800,
-    speed: 300
+    windowWidth: 800
 };
 
 export default class Game extends Phaser.Scene {
+    playerController;
+
     constructor() {
         super('game');
     }
@@ -28,7 +29,20 @@ export default class Game extends Phaser.Scene {
         // }
         //this.cameras.main.setBounds(0, 0, );
 
-        this.createParallaxBackgrounds();
+        // The player is a collection of bodies and sensors
+        this.playerController = {
+            blocked: {
+                left: false,
+                right: false,
+                bottom: false
+            },
+            lastJumpedAt: 0,
+            speed: {
+                run: 400,
+                jump: 300
+            }
+        };
+        //this.createParallaxBackgrounds();
         this.addPlayerToScene();
         this.createAnimations();
         this.playAnimations();
@@ -37,8 +51,8 @@ export default class Game extends Phaser.Scene {
 
     }
 
-    update(){
-        this.handlePlayerMovement();
+    update(time){
+        this.handlePlayerMovement(time);
     }
 
     loadBackgroundImages(){
@@ -48,19 +62,33 @@ export default class Game extends Phaser.Scene {
         this.load.image('platform', 'assets/ground_grass.png');
     }
     loadPlayerSprites(){
-        this.load.spritesheet('playerIdle', 'assets/playerIdle.png', {frameWidth: 138, frameHeight: 173});
+        this.load.unityAtlas('playerIdle', 'assets/atlas_unity/character_idle.png', 'assets/atlas_unity/character_idle.png.meta');
+        this.load.unityAtlas('playerRun', 'assets/atlas_unity/character_run.png', 'assets/atlas_unity/character_run.png.meta');
+        this.load.unityAtlas('playerJump', 'assets/atlas_unity/character_jump.png', 'assets/atlas_unity/character_jump.png.meta');
     }
     addPlayerToScene(){
-        gameState.player = this.physics.add.sprite(125, 550, 'playerIdle'); // TODO GET ground coordinates
+        gameState.player = this.physics.add.sprite(125, 500, 'playerIdle'); // TODO GET ground coordinates
         gameState.player.setScale(0.5);
         gameState.player.flipX = true;
     }
     createAnimations(){
         this.anims.create({
             key: 'idle',
-            frames: this.anims.generateFrameNumbers('playerIdle', { start: 0, end: 20 }),
-            frameRate: 25,
-            repeat: -1
+            frames: this.anims.generateFrameNames('playerIdle', { prefix: 'idle_', start: 21, end: 41}),
+            repeat: -1,
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'run',
+            frames: this.anims.generateFrameNames('playerRun', { prefix: 'run_', start: 10, end: 19}),
+            repeat: -1,
+            frameRate: 14
+        });
+        this.anims.create({
+            key: 'jump',
+            frames: this.anims.generateFrameNames('playerJump', { prefix: 'jump_', start: 19, end: 37}),
+            repeat: 0,
+            frameRate: 30,
         });
     }
     createParallaxBackgrounds(){
@@ -79,17 +107,36 @@ export default class Game extends Phaser.Scene {
     playAnimations() {
         gameState.player.anims.play('idle', true);
     }
-    handlePlayerMovement(){
-        if (gameState.cursors.right.isDown) {
+    handlePlayerMovement(time){
+        const canJump = (time - this.playerController.lastJumpedAt) > 250; // TODO Change: Can jump again when player touches the ground again
+        if(gameState.cursors.up.isDown && gameState.cursors.right.isDown){
             gameState.player.flipX = true;
-            gameState.player.setVelocityX(gameState.speed);
+            gameState.player.setVelocityX(this.playerController.speed.run);
+            gameState.player.setVelocityY(-this.playerController.speed.jump);
+            gameState.player.anims.play('jump', true);
+            this.playerController.lastJumpedAt = time;
+        } else if(gameState.cursors.up.isDown && gameState.cursors.left.isDown){
+            gameState.player.flipX = false;
+            gameState.player.setVelocityX(-this.playerController.speed.run);
+            gameState.player.setVelocityY(-this.playerController.speed.jump);
+            gameState.player.anims.play('jump', true);
+            this.playerController.lastJumpedAt = time;
+        } else if (gameState.cursors.up.isDown) {
+            // gameState.player.flipX = true;
+            gameState.player.setVelocityY(-this.playerController.speed.jump);
+            gameState.player.anims.play('jump', true);
+        }  else if (gameState.cursors.right.isDown) {
+            gameState.player.flipX = true;
+            gameState.player.setVelocityX(this.playerController.speed.run);
             gameState.player.anims.play('run', true);
+            this.playerController.lastJumpedAt = time;
         } else if(gameState.cursors.left.isDown){
             gameState.player.flipX = false;
-            gameState.player.setVelocityX(-gameState.speed);
+            gameState.player.setVelocityX(-this.playerController.speed.run);
             gameState.player.anims.play('run', true);
         } else {
             gameState.player.setVelocityX(0);
+            gameState.player.anims.play('idle', true);
         }
     }
 }
