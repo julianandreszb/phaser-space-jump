@@ -1,6 +1,8 @@
 import Phaser from "../lib/phaser.js";
+import config from "../config.js";
+
 let gameState = {
-    windowWidth: 800
+    windowWidth: null
 };
 
 export default class Game extends Phaser.Scene {
@@ -14,6 +16,13 @@ export default class Game extends Phaser.Scene {
         this.loadBackgroundImages();
         this.loadPlatformImages();
         this.loadPlayerSprites();
+
+        this.playerController = {
+            speed: {
+                run: 450,
+                jump: 300
+            }
+        };
 
         gameState.cursors = this.input.keyboard.createCursorKeys();
     }
@@ -30,113 +39,148 @@ export default class Game extends Phaser.Scene {
         //this.cameras.main.setBounds(0, 0, );
 
         // The player is a collection of bodies and sensors
-        this.playerController = {
-            blocked: {
-                left: false,
-                right: false,
-                bottom: false
-            },
-            lastJumpedAt: 0,
-            speed: {
-                run: 400,
-                jump: 300
-            }
-        };
-        //this.createParallaxBackgrounds();
+
+        this.createParallaxBackgrounds();
         this.addPlayerToScene();
         this.createAnimations();
         this.playAnimations();
+
+        this.cameras.main.setBounds(0, 0, gameState.backgroundLayer3.width, gameState.backgroundLayer3.height);
+        this.physics.world.setBounds(0, 0, gameState.backgroundLayer3.width, gameState.backgroundLayer3.height);
+        this.cameras.main.startFollow(gameState.player, true, 0.5, 0.5)
 
         gameState.player.setCollideWorldBounds(true);
 
     }
 
-    update(time){
+    update(time) {
         this.handlePlayerMovement(time);
     }
 
-    loadBackgroundImages(){
-        this.load.image('backgroundLayer1', 'assets/bg_layer1.png');
+    loadBackgroundImages() {
+        this.load.image('backgroundLayer1', 'assets/background/mountain.png');
+        this.load.image('backgroundLayer2', 'assets/background/trees.png');
+        this.load.image('backgroundLayer3', 'assets/background/snowDunes.png');
     }
-    loadPlatformImages(){
+
+    loadPlatformImages() {
         this.load.image('platform', 'assets/ground_grass.png');
     }
-    loadPlayerSprites(){
+
+    loadPlayerSprites() {
         this.load.unityAtlas('playerIdle', 'assets/atlas_unity/character_idle.png', 'assets/atlas_unity/character_idle.png.meta');
         this.load.unityAtlas('playerRun', 'assets/atlas_unity/character_run.png', 'assets/atlas_unity/character_run.png.meta');
         this.load.unityAtlas('playerJump', 'assets/atlas_unity/character_jump.png', 'assets/atlas_unity/character_jump.png.meta');
+        this.load.unityAtlas('playerDuck', 'assets/atlas_unity/character_duck.png', 'assets/atlas_unity/character_duck.png.meta');
+        this.load.unityAtlas('playerCrawl', 'assets/atlas_unity/character_crawl.png', 'assets/atlas_unity/character_crawl.png.meta');
     }
-    addPlayerToScene(){
-        gameState.player = this.physics.add.sprite(125, 500, 'playerIdle'); // TODO GET ground coordinates
-        gameState.player.setScale(0.5);
+
+    addPlayerToScene() {
+        gameState.player = this.physics.add.sprite(125, 400, 'playerIdle');
+        gameState.player.setScale(0.4);
         gameState.player.flipX = true;
     }
-    createAnimations(){
+
+    createAnimations() {
         this.anims.create({
             key: 'idle',
-            frames: this.anims.generateFrameNames('playerIdle', { prefix: 'idle_', start: 21, end: 41}),
+            frames: this.anims.generateFrameNames('playerIdle', {prefix: 'idle_', start: 21, end: 41}),
             repeat: -1,
             frameRate: 20
         });
         this.anims.create({
             key: 'run',
-            frames: this.anims.generateFrameNames('playerRun', { prefix: 'run_', start: 10, end: 19}),
+            frames: this.anims.generateFrameNames('playerRun', {prefix: 'run_', start: 10, end: 19}),
             repeat: -1,
-            frameRate: 14
+            frameRate: 20
         });
         this.anims.create({
+            key: 'duck',
+            frames: this.anims.generateFrameNames('playerDuck', {prefix: 'duck_', start: 22, end: 41}),
+            repeat: -1,
+            frameRate: 20
+        });
+        this.anims.create({
+            key: 'crawl',
+            frames: this.anims.generateFrameNames('playerCrawl', {prefix: 'crawl_', start: 20, end: 37}),
+            repeat: -1,
+            frameRate: 20
+        });
+        // Commented - Full jump animation
+        // this.anims.create({
+        //     key: 'jump',
+        //     frames: this.anims.generateFrameNames('playerJump', { prefix: 'jump_', start: 19, end: 37}),
+        //     repeat: 0,
+        //     frameRate: 30,
+        // });
+        this.anims.create({
             key: 'jump',
-            frames: this.anims.generateFrameNames('playerJump', { prefix: 'jump_', start: 19, end: 37}),
+            frames: this.anims.generateFrameNames('playerJump', {prefix: 'jump_', start: 28, end: 28}),
             repeat: 0,
-            frameRate: 30,
+            frameRate: 20
         });
     }
-    createParallaxBackgrounds(){
+
+    createParallaxBackgrounds() {
 
         gameState.backgroundLayer1 = this.add.image(0, 0, 'backgroundLayer1');
+        gameState.backgroundLayer2 = this.add.image(0, 0, 'backgroundLayer2');
+        gameState.backgroundLayer3 = this.add.image(0, 0, 'backgroundLayer3');
 
         gameState.backgroundLayer1.setOrigin(0, 0);
+        gameState.backgroundLayer2.setOrigin(0, 0);
+        gameState.backgroundLayer3.setOrigin(0, 0);
+
+        // Get larger background width
+        gameState.windowWidth = parseFloat(gameState.backgroundLayer3.getBounds().width);
 
         const backgroundLayer1Width = gameState.backgroundLayer1.getBounds().width;
+        const backgroundLayer2Width = gameState.backgroundLayer2.getBounds().width;
 
-        gameState.width = parseFloat(gameState.backgroundLayer1.getBounds().width);
-
-        gameState.backgroundLayer1.setScrollFactor((backgroundLayer1Width - gameState.windowWidth) / (gameState.width - gameState.windowWidth));
+        gameState.backgroundLayer1.setScrollFactor((backgroundLayer1Width - config.width) / (gameState.windowWidth - config.width));
+        gameState.backgroundLayer2.setScrollFactor((backgroundLayer2Width - config.width) / (gameState.windowWidth - config.width));
 
     }
+
     playAnimations() {
         gameState.player.anims.play('idle', true);
     }
-    handlePlayerMovement(time){
-        const canJump = (time - this.playerController.lastJumpedAt) > 250; // TODO Change: Can jump again when player touches the ground again
-        if(gameState.cursors.up.isDown && gameState.cursors.right.isDown){
+
+    handlePlayerMovement() {
+        if (gameState.cursors.right.isDown && gameState.cursors.down.isDown) {
             gameState.player.flipX = true;
-            gameState.player.setVelocityX(this.playerController.speed.run);
-            gameState.player.setVelocityY(-this.playerController.speed.jump);
-            gameState.player.anims.play('jump', true);
-            this.playerController.lastJumpedAt = time;
-        } else if(gameState.cursors.up.isDown && gameState.cursors.left.isDown){
+            gameState.player.setVelocityX(this.playerController.speed.run / 2);
+            gameState.player.anims.play('crawl', true);
+        } else if (gameState.cursors.left.isDown && gameState.cursors.down.isDown) {
             gameState.player.flipX = false;
-            gameState.player.setVelocityX(-this.playerController.speed.run);
-            gameState.player.setVelocityY(-this.playerController.speed.jump);
-            gameState.player.anims.play('jump', true);
-            this.playerController.lastJumpedAt = time;
-        } else if (gameState.cursors.up.isDown) {
-            // gameState.player.flipX = true;
-            gameState.player.setVelocityY(-this.playerController.speed.jump);
-            gameState.player.anims.play('jump', true);
-        }  else if (gameState.cursors.right.isDown) {
+            gameState.player.setVelocityX(-this.playerController.speed.run / 2);
+            gameState.player.anims.play('crawl', true);
+        } else if (gameState.cursors.right.isDown) {
             gameState.player.flipX = true;
-            gameState.player.setVelocityX(this.playerController.speed.run);
+            const runSpeed = gameState.player.body.blocked.down ?
+                this.playerController.speed.run : this.playerController.speed.run / 1.5 // Slow down when jumping
+            gameState.player.setVelocityX(runSpeed);
             gameState.player.anims.play('run', true);
-            this.playerController.lastJumpedAt = time;
-        } else if(gameState.cursors.left.isDown){
+        } else if (gameState.cursors.left.isDown) {
             gameState.player.flipX = false;
-            gameState.player.setVelocityX(-this.playerController.speed.run);
+            const runSpeed = gameState.player.body.blocked.down ?
+                this.playerController.speed.run : this.playerController.speed.run / 1.5 // Slow down when jumping
+            gameState.player.setVelocityX(-runSpeed);
             gameState.player.anims.play('run', true);
-        } else {
+        } else if (gameState.cursors.down.isDown) {
             gameState.player.setVelocityX(0);
+            gameState.player.anims.play('duck', true);
+        } else {
             gameState.player.anims.play('idle', true);
+            gameState.player.setVelocityX(0);
+        }
+
+        if (Phaser.Input.Keyboard.JustDown(gameState.cursors.space) && gameState.player.body.blocked.down) {
+            gameState.player.setVelocityY(-500);
+        }
+
+        if (!gameState.player.body.blocked.down) {
+            gameState.player.anims.play('jump', true);
         }
     }
 }

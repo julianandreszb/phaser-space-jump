@@ -1,19 +1,4 @@
 import Phaser from './lib/phaser.js';
-import Game from "./scenes/Game.js";
+import config from "./config.js";
 
-
-export default new Phaser.Game({
-    type: Phaser.AUTO,
-    width: 800,
-    height: 600,
-    physics: {
-        default: 'arcade',
-        arcade: {
-            gravity: {
-                y: 500
-            },
-            debug: true
-        }
-    },
-    scene: [Game]
-});
+export default new Phaser.Game(config);
