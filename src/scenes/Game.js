@@ -29,14 +29,14 @@ export default class Game extends Phaser.Scene {
 
     create() {
         //this.add.image(0, 0, 'background').setOrigin(0, 0);
-        // const platforms = this.physics.add.staticGroup();
-        // for (let i = 0; i < 5; i++) {
-        //     const x = Phaser.Math.Between(100, 800);
-        //     const y = 150 * i;
-        //     const platform = platforms.create(x, y, 'platform');
-        //     platform.body.updateFromGameObject();
-        // }
-        //this.cameras.main.setBounds(0, 0, );
+        gameState.platforms = this.physics.add.staticGroup();
+        for (let i = 0; i < 5; i++) {
+            const x = Phaser.Math.Between(100, 800);
+            const y = 150 * i;
+            const platform = gameState.platforms.create(x, y, 'platform');
+            platform.body.updateFromGameObject();
+        }
+
 
         // The player is a collection of bodies and sensors
 
@@ -50,7 +50,7 @@ export default class Game extends Phaser.Scene {
         this.cameras.main.startFollow(gameState.player, true, 0.5, 0.5)
 
         gameState.player.setCollideWorldBounds(true);
-
+        this.physics.add.collider(gameState.player, gameState.platforms);
     }
 
     update(time) {
@@ -78,6 +78,8 @@ export default class Game extends Phaser.Scene {
     addPlayerToScene() {
         gameState.player = this.physics.add.sprite(125, 400, 'playerIdle');
         gameState.player.setScale(0.4);
+        gameState.player.setBodySize(150, 180);
+        gameState.player.body.offset.y = 90;
         gameState.player.flipX = true;
     }
 
@@ -168,9 +170,13 @@ export default class Game extends Phaser.Scene {
             gameState.player.setVelocityX(-runSpeed);
             gameState.player.anims.play('run', true);
         } else if (gameState.cursors.down.isDown) {
+            gameState.player.setBodySize(150, 130); // Move to function
+            gameState.player.body.offset.y = 140; // Move to function
             gameState.player.setVelocityX(0);
             gameState.player.anims.play('duck', true);
         } else {
+            gameState.player.setBodySize(150, 180); // Move to function
+            gameState.player.body.offset.y = 90; // Move to function
             gameState.player.anims.play('idle', true);
             gameState.player.setVelocityX(0);
         }
