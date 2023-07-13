@@ -5,11 +5,12 @@ export default {
     type: Phaser.AUTO,
     width: 800,
     height: 600,
+    backgroundColor: '#ffffff',
     physics: {
         default: 'arcade',
         arcade: {
             gravity: {
-                y: 500
+                y: 1000
             },
             enableBody: true,
             debug: true
